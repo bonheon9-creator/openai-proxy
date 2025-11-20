@@ -3,35 +3,28 @@ import fetch from "node-fetch";
 import cors from "cors";
 
 const app = express();
-
-// ========== CORS 완전 허용 ==========
-app.use(cors());
-app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    if (req.method === "OPTIONS") {
-        return res.sendStatus(200);
-    }
-    next();
-});
-
-// JSON 파서
 app.use(express.json());
+app.use(cors());
 
-// ========== 테스트용 엔드포인트 ==========
-app.get("/test", (req, res) => {
-    res.json({ status: "OK", message: "Proxy is alive." });
+// 헬스 체크용
+app.get("/", (req, res) => {
+    res.send("OK: Proxy is running.");
 });
 
-// ========== OpenAI Chat Completion Proxy ==========
+// 프록시 엔드포인트
 app.post("/v1/chat/completions", async (req, res) => {
     try {
+        const apiKey = process.env.OPENAI_API_KEY;
+
+        if (!apiKey) {
+            return res.status(500).json({ error: "Missing API Key" });
+        }
+
         const response = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+                "Authorization": `Bearer ${apiKey}`
             },
             body: JSON.stringify(req.body)
         });
@@ -40,14 +33,11 @@ app.post("/v1/chat/completions", async (req, res) => {
         res.json(data);
 
     } catch (error) {
-        console.error("Proxy Error:", error);
-        res.status(500).json({
-            error: "Proxy error",
-            details: error.message
-        });
+        res.status(500).json({ error: "Proxy error", details: error.message });
     }
 });
 
-// ========== 서버 실행 ==========
+// Render는 고정 포트(3000) 사용 ❌
+// Render가 제공하는 PORT 사용해야 함 ⬇️
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Proxy server running on ${PORT}`));
