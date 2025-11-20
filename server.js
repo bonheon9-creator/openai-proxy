@@ -3,17 +3,19 @@ import fetch from "node-fetch";
 import cors from "cors";
 
 const app = express();
+
+// JSON 처리
 app.use(express.json());
-app.use(cors());
 
 // CORS 허용
+app.use(cors());
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "*");
     next();
 });
 
-// OpenAI 프록시
+// Proxy 라우터
 app.post("/v1/chat/completions", async (req, res) => {
     try {
         const response = await fetch("https://api.openai.com/v1/chat/completions", {
