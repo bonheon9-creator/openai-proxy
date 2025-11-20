@@ -6,25 +6,21 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// 헬스 체크용
-app.get("/", (req, res) => {
-    res.send("OK: Proxy is running.");
+// CORS 허용
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "*");
+    next();
 });
 
-// 프록시 엔드포인트
+// OpenAI 프록시
 app.post("/v1/chat/completions", async (req, res) => {
     try {
-        const apiKey = process.env.OPENAI_API_KEY;
-
-        if (!apiKey) {
-            return res.status(500).json({ error: "Missing API Key" });
-        }
-
         const response = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${apiKey}`
+                "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
             },
             body: JSON.stringify(req.body)
         });
@@ -37,7 +33,4 @@ app.post("/v1/chat/completions", async (req, res) => {
     }
 });
 
-// Render는 고정 포트(3000) 사용 ❌
-// Render가 제공하는 PORT 사용해야 함 ⬇️
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Proxy server running on ${PORT}`));
+app.listen(3000, () => console.log("Proxy server running on port 3000"));
