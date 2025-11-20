@@ -3,17 +3,28 @@ import fetch from "node-fetch";
 import cors from "cors";
 
 const app = express();
-app.use(express.json());
 
-// ★ CORS 허용 추가
+// ========== CORS 완전 허용 ==========
 app.use(cors());
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "*");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    if (req.method === "OPTIONS") {
+        return res.sendStatus(200);
+    }
     next();
 });
 
-// 프록시 엔드포인트
+// JSON 파서
+app.use(express.json());
+
+// ========== 테스트용 엔드포인트 ==========
+app.get("/test", (req, res) => {
+    res.json({ status: "OK", message: "Proxy is alive." });
+});
+
+// ========== OpenAI Chat Completion Proxy ==========
 app.post("/v1/chat/completions", async (req, res) => {
     try {
         const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -29,8 +40,14 @@ app.post("/v1/chat/completions", async (req, res) => {
         res.json(data);
 
     } catch (error) {
-        res.status(500).json({ error: "Proxy error", details: error.message });
+        console.error("Proxy Error:", error);
+        res.status(500).json({
+            error: "Proxy error",
+            details: error.message
+        });
     }
 });
 
-app.listen(3000, () => console.log("Proxy server running on port 3000"));
+// ========== 서버 실행 ==========
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`));
