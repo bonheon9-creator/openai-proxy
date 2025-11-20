@@ -3,35 +3,44 @@ import fetch from "node-fetch";
 import cors from "cors";
 
 const app = express();
-
-// JSON 처리
 app.use(express.json());
-
-// CORS 허용
 app.use(cors());
-app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "*");
-    next();
-});
 
-// Proxy 라우터
+// ✔ 최신 OpenAI API endpoint 사용
+const OPENAI_URL = "https://api.openai.com/v1/responses";
+
 app.post("/v1/chat/completions", async (req, res) => {
     try {
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        const response = await fetch(OPENAI_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
             },
-            body: JSON.stringify(req.body)
+            body: JSON.stringify({
+                model: req.body.model,
+                input: req.body.messages[1].content
+            })
         });
 
         const data = await response.json();
-        res.json(data);
+
+        // Tampermonkey가 이해할 수 있는 구조로 변환
+        res.json({
+            choices: [
+                {
+                    message: {
+                        content: data.output_text
+                    }
+                }
+            ]
+        });
 
     } catch (error) {
-        res.status(500).json({ error: "Proxy error", details: error.message });
+        res.status(500).json({
+            error: "Proxy error",
+            details: error.message
+        });
     }
 });
 
